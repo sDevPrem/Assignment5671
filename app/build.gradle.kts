@@ -85,6 +85,9 @@ dependencies {
 
     //glide
     implementation("com.github.bumptech.glide:glide:$glide_version")
+
+    //location
+    implementation("com.google.android.gms:play-services-location:21.0.1")
 }
 kapt {
     correctErrorTypes = true

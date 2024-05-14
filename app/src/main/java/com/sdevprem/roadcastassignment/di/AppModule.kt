@@ -1,11 +1,16 @@
 package com.sdevprem.roadcastassignment.di
 
+import android.content.Context
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.sdevprem.roadcastassignment.data.datasource.MovieDataSource
 import com.sdevprem.roadcastassignment.data.datasource.constants.ApiConfig
 import com.sdevprem.roadcastassignment.data.datasource.interceptor.AuthInterceptor
+import com.sdevprem.roadcastassignment.data.location.LocationTracker
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import retrofit2.Converter
@@ -52,5 +57,20 @@ class AppModule {
     @Provides
     fun providesMoviesDataSource(retrofit: Retrofit): MovieDataSource =
         retrofit.create(MovieDataSource::class.java)
+
+    @Singleton
+    @Provides
+    fun provideFusedLocationProviderClient(
+        @ApplicationContext context: Context
+    ): FusedLocationProviderClient = LocationServices
+        .getFusedLocationProviderClient(context)
+
+    @Singleton
+    @Provides
+    fun providesLocationTracker(
+        fusedLocationProviderClient: FusedLocationProviderClient,
+    ) = LocationTracker(
+        fusedLocationProviderClient = fusedLocationProviderClient,
+    )
 
 }
