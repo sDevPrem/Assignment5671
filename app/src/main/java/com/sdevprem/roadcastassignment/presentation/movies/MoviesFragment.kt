@@ -4,10 +4,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.GridLayoutManager
 import com.sdevprem.roadcastassignment.databinding.FragmentMoviesBinding
 import com.sdevprem.roadcastassignment.presentation.movies.adapter.MoviesAdapter
@@ -49,6 +51,11 @@ class MoviesFragment: Fragment() {
                 .collectLatest {
                     adapter.submitData(it)
                 }
+        }
+
+        adapter.addLoadStateListener {
+            rvMovies.isVisible = it.refresh is LoadState.NotLoading
+            moviesProgressBar.isVisible = it.refresh is LoadState.Loading
         }
         return@with
     }

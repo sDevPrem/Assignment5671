@@ -32,4 +32,14 @@
         app:layout_constraintTop_toBottomOf="@+id/top_bar_app_layout"
         tools:listitem="@layout/rv_item_movie" />
 
+    <ProgressBar
+        android:id="@+id/movies_progress_bar"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:indeterminate="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/top_bar_app_layout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
