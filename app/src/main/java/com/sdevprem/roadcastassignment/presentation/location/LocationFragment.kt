@@ -3,11 +3,15 @@ package com.sdevprem.roadcastassignment.presentation.location
 import android.app.Activity
 import android.content.Intent
 import android.content.IntentSender
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.flowWithLifecycle
@@ -31,6 +35,7 @@ import com.sdevprem.roadcastassignment.R
 import com.sdevprem.roadcastassignment.data.location.LocationTracker
 import com.sdevprem.roadcastassignment.data.location.model.LocationPoint
 import com.sdevprem.roadcastassignment.databinding.FragmentLocationBinding
+import com.sdevprem.roadcastassignment.presentation.location.utils.PermissionUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -44,6 +49,17 @@ class LocationFragment : Fragment() {
     private lateinit var binding: FragmentLocationBinding
     private val viewModel by viewModels<LocationViewModel>()
     private var marker: Marker? = null
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissionResults ->
+            PermissionUtils.handlePermissionResults(
+                permissionResults = permissionResults,
+                context = requireContext(),
+                onPermissionGranted = ::checkAndRequestLocationSetting
+            )
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -61,13 +77,20 @@ class LocationFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        checkAndRequestLocationSetting()
+        checkAndRequestLocationPermission()
 
         val mapFragment =
             childFragmentManager.findFragmentById(binding.map.id) as? SupportMapFragment
         mapFragment?.getMapAsync (::startUpdatingLocation)
 
+    }
+
+    private fun checkAndRequestLocationPermission() {
+        PermissionUtils.checkAndRequestLocationPermission(
+            requestPermissionLauncher = requestPermissionLauncher,
+            activity = requireActivity(),
+            onPermissionGranted = ::checkAndRequestLocationSetting
+        )
     }
 
     private fun startUpdatingLocation(googleMap: GoogleMap) {
