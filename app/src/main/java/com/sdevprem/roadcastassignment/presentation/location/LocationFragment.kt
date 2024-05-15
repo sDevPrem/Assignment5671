@@ -3,15 +3,12 @@ package com.sdevprem.roadcastassignment.presentation.location
 import android.app.Activity
 import android.content.Intent
 import android.content.IntentSender
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.flowWithLifecycle
@@ -28,19 +25,13 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.ktx.addMarker
-import com.google.maps.android.ktx.awaitMap
-import com.sdevprem.roadcastassignment.R
-import com.sdevprem.roadcastassignment.data.location.LocationTracker
 import com.sdevprem.roadcastassignment.data.location.model.LocationPoint
 import com.sdevprem.roadcastassignment.databinding.FragmentLocationBinding
 import com.sdevprem.roadcastassignment.presentation.location.utils.PermissionUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -57,7 +48,10 @@ class LocationFragment : Fragment() {
             PermissionUtils.handlePermissionResults(
                 permissionResults = permissionResults,
                 context = requireContext(),
-                onPermissionGranted = ::checkAndRequestLocationSetting
+                onPermissionGranted = {
+                    checkAndRequestLocationSetting()
+                    viewModel.requestLocationUpdate()
+                }
             )
         }
 
@@ -83,13 +77,20 @@ class LocationFragment : Fragment() {
             childFragmentManager.findFragmentById(binding.map.id) as? SupportMapFragment
         mapFragment?.getMapAsync (::startUpdatingLocation)
 
+        binding.findMyLocationFab.setOnClickListener {
+            checkAndRequestLocationPermission()
+        }
+
     }
 
     private fun checkAndRequestLocationPermission() {
         PermissionUtils.checkAndRequestLocationPermission(
             requestPermissionLauncher = requestPermissionLauncher,
             activity = requireActivity(),
-            onPermissionGranted = ::checkAndRequestLocationSetting
+            onPermissionAlreadyGranted = {
+                checkAndRequestLocationSetting()
+                viewModel.requestLocationUpdate()
+            }
         )
     }
 
@@ -155,12 +156,16 @@ class LocationFragment : Fragment() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == LOCATION_ENABLE_REQUEST_CODE && resultCode != Activity.RESULT_OK) {
-            Toast.makeText(
-                requireContext(),
-                "Please enable GPS to get proper running statistics.",
-                Toast.LENGTH_LONG
-            ).show()
+        if (requestCode == LOCATION_ENABLE_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK) {
+                viewModel.requestLocationUpdate()
+            } else {
+                Toast.makeText(
+                    requireContext(),
+                    "Please enable GPS to get proper running statistics.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 

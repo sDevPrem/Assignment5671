@@ -11,7 +11,6 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.startActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 object PermissionUtils {
@@ -23,7 +22,7 @@ object PermissionUtils {
     fun checkAndRequestLocationPermission(
         requestPermissionLauncher: ActivityResultLauncher<Array<String>>,
         activity: Activity,
-        onPermissionGranted: () -> Unit,
+        onPermissionAlreadyGranted: () -> Unit,
     ) {
         when {
             locationPermissions.all {
@@ -32,7 +31,7 @@ object PermissionUtils {
                     it
                 ) == PackageManager.PERMISSION_GRANTED
             } -> {
-                onPermissionGranted()
+                onPermissionAlreadyGranted()
             }
 
             locationPermissions.any {
