@@ -4,6 +4,7 @@ plugins {
     kotlin("kapt")
     id("com.google.dagger.hilt.android")
     id("androidx.navigation.safeargs.kotlin")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
@@ -88,6 +89,9 @@ dependencies {
 
     //location
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    //map
+    implementation("com.google.android.gms:play-services-maps:18.1.0")
+    implementation("com.google.maps.android:maps-ktx:5.0.0")
 }
 kapt {
     correctErrorTypes = true

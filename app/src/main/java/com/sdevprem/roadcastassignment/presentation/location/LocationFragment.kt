@@ -18,19 +18,32 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import com.google.android.gms.location.SettingsClient
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.maps.android.ktx.addMarker
+import com.google.maps.android.ktx.awaitMap
 import com.sdevprem.roadcastassignment.R
 import com.sdevprem.roadcastassignment.data.location.LocationTracker
+import com.sdevprem.roadcastassignment.data.location.model.LocationPoint
 import com.sdevprem.roadcastassignment.databinding.FragmentLocationBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class LocationFragment: Fragment() {
+class LocationFragment : Fragment() {
 
     private lateinit var binding: FragmentLocationBinding
     private val viewModel by viewModels<LocationViewModel>()
+    private var marker: Marker? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,41 +62,71 @@ class LocationFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        checkAndRequestLocationSetting(requireActivity())
+        checkAndRequestLocationSetting()
 
+        val mapFragment =
+            childFragmentManager.findFragmentById(binding.map.id) as? SupportMapFragment
+        mapFragment?.getMapAsync (::startUpdatingLocation)
+
+    }
+
+    private fun startUpdatingLocation(googleMap: GoogleMap) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.userLocation
                 .flowWithLifecycle(viewLifecycleOwner.lifecycle)
                 .filterNotNull()
-                .collectLatest {
-                    binding.locationText.text = "lat = ${it.latitude} long = ${it.longitude}"
+                .collectLatest { locationPoint ->
+                    setLocationToMap(locationPoint,googleMap)
                 }
         }
     }
 
-    private fun checkAndRequestLocationSetting(activity: Activity) {
+    private fun setLocationToMap(locationPoint: LocationPoint, googleMap: GoogleMap) {
+        val latLng = LatLng(locationPoint.latitude, locationPoint.longitude)
+        marker?.let {
+            it.position = latLng
+        } ?: run {
+            marker = googleMap.addMarker {
+                position(latLng)
+            }
+        }
+        moveCamera(latLng,googleMap)
+    }
+
+    private fun moveCamera(latLng: LatLng, googleMap: GoogleMap) {
+        googleMap.animateCamera(
+            CameraUpdateFactory.newCameraPosition(CameraPosition(latLng, 18.0f, 0F, 0F))
+        )
+    }
+
+    private fun checkAndRequestLocationSetting() {
         val locationRequest = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
             LOCATION_UPDATE_INTERVAL_IN_MILLIS
         ).build()
-
         val builder = LocationSettingsRequest.Builder()
             .addLocationRequest(locationRequest)
-        val client: SettingsClient = LocationServices.getSettingsClient(activity)
+        val client: SettingsClient = LocationServices.getSettingsClient(requireActivity())
 
         client.checkLocationSettings(builder.build())
-            .addOnFailureListener { exception ->
-                if (exception is ResolvableApiException) {
-                    try {
-                        exception.startResolutionForResult(
-                            activity,
-                            LOCATION_ENABLE_REQUEST_CODE
-                        )
-                    } catch (_: IntentSender.SendIntentException) {
+            .addOnFailureListener(::requestLocationSetting)
+    }
 
-                    }
-                }
+    private fun requestLocationSetting(exception:  Exception) {
+        if (exception is ResolvableApiException) {
+            try {
+                exception.startResolutionForResult(
+                    requireActivity(),
+                    LOCATION_ENABLE_REQUEST_CODE
+                )
+            } catch (_: IntentSender.SendIntentException) {
+                Toast.makeText(
+                    requireContext(),
+                    "Please enable GPS to get proper running statistics.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
+        }
     }
 
     @Deprecated("Deprecated in Java")
